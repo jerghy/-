@@ -2,14 +2,20 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor
-
+all_time=0
 def get_content_from_url(book_url):
+    global all_time
+    biging_time = time.time()
     response = requests.get(book_url)
     response.encoding = 'utf-8'
     soup = BeautifulSoup(response.text, 'html.parser')
     content_div = soup.find('div', {'id': 'content'})
     content_text = content_div.get_text(separator="\n", strip=True) if content_div else ""
+    ending_time = time.time()
+    print(f"爬取用时：{ending_time - biging_time}秒")
+    all_time+=ending_time - biging_time
     return content_text
 
 def get_data_from_url(url):
@@ -84,10 +90,14 @@ def process_books(json_file):
         print(f"数据已保存到文件：{data_file_path}")
 
         # 使用多线程下载书籍内容
-        with ThreadPoolExecutor(max_workers=200) as executor:
+        with ThreadPoolExecutor(max_workers=100) as executor:
             for num, book_item in enumerate(data["book_list"], start=1):
                 executor.submit(download_and_save_book, book_item, full_directory_path, num)
 
 # 运行程序处理书籍
+biging_time = time.time()
 json_file = 'results2.json'
 process_books(json_file)
+end_time = time.time()
+print(f"程序运行时间：{end_time - biging_time} 秒")
+print(f"程序运行完毕。{all_time}")
