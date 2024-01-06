@@ -2,6 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 def get_content_from_url(book_url):
     response = requests.get(book_url)
@@ -48,39 +49,27 @@ def get_data_from_url(url):
     }
     
     return data
-    
 
-# url = 'https://www.zhonghuadiancang.com/xuanxuewushu/xingmingguizhi/'
-# data = get_data_from_url(url)
 
-# title_directory = "".join(char for char in data['title'] if char.isalnum() or char in (" ", ".", "_")).rstrip() if data['title'] else "book_data"
-# if not os.path.exists(title_directory):
-#     os.makedirs(title_directory)
-
-# data_file_path = os.path.join(title_directory, 'data.json')
-# with open(data_file_path, 'w', encoding='utf-8') as data_file:
-#     json.dump(data, data_file, ensure_ascii=False, indent=4)
-# print(f"数据已保存到文件：{data_file_path}")
-
-# for book in data["book_list"]:
-#     content = get_content_from_url(book["href"])
-#     file_name = "".join(char for char in book["title"] if char.isalnum() or char in (" ", ".", "_")).rstrip()
-#     file_name = file_name if file_name else 'unknown_title'
-#     file_path = os.path.join(title_directory, file_name + ".txt")
-#     with open(file_path, 'w', encoding='utf-8') as f:
-#         f.write(content)
-#     print(f"内容已保存到文件：{file_path}")
+# 新函数：下载书籍并保存到文件
+def download_and_save_book(book, title_directory, num):
+    content = get_content_from_url(book["href"])
+    file_name = "".join(char for char in book["title"] if char.isalnum() or char in (" ", ".", "_")).rstrip()
+    file_name = f"{num}_{file_name}.txt" if file_name else f"{num}_unknown_title.txt"
+    file_path = os.path.join(title_directory, file_name)
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"内容已保存到文件：{file_path}")
 
 def process_books(json_file):
-    # 读取JSON文件内容
     with open(json_file, 'r', encoding='utf-8') as file:
         book_list = json.load(file)
 
-    for book in book_list:
+    for index, book in enumerate(book_list, start=1):
         data = get_data_from_url(book['href'])
 
         # 创建以书名命名的目录
-        title_directory = "".join(char for char in data['title'] if char.isalnum() or char in (" ", ".", "_")).rstrip() if data['title'] else "book_data"
+        title_directory = "".join(char for char in data['title'] if char.isalnum() or char in (" ", ".", "_")).rstrip() if data['title'] else f"book_data_{index}"
         if not os.path.exists(title_directory):
             os.makedirs(title_directory)
 
@@ -90,16 +79,11 @@ def process_books(json_file):
             json.dump(data, data_file, ensure_ascii=False, indent=4)
         print(f"数据已保存到文件：{data_file_path}")
 
-        # 遍历书籍列表并保存内容
-        for book in data["book_list"]:
-            content = get_content_from_url(book["href"])
-            file_name = "".join(char for char in book["title"] if char.isalnum() or char in (" ", ".", "_")).rstrip()
-            file_name = file_name if file_name else 'unknown_title'
-            file_path = os.path.join(title_directory, file_name + ".txt")
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            print(f"内容已保存到文件：{file_path}")
+        # 使用多线程下载书籍内容
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            for num, book_item in enumerate(data["book_list"], start=1):
+                executor.submit(download_and_save_book, book_item, title_directory, num)
 
-# 假设results2.json是您提供的JSON文件名
+# 运行程序处理书籍
 json_file = 'results2.json'
 process_books(json_file)
