@@ -84,7 +84,7 @@ def process_books(json_file):
         print(f"数据已保存到文件：{data_file_path}")
 
         # 使用多线程下载书籍内容
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=200) as executor:
             for num, book_item in enumerate(data["book_list"], start=1):
                 executor.submit(download_and_save_book, book_item, full_directory_path, num)
 
