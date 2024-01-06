@@ -1,0 +1,33 @@
+name: Run Crawler
+
+on: [push]
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v2
+      
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  # 或者指定更具体的版本号
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4  # 或者添加您的其他依赖
+
+    - name: Run crawler
+      run: python paqu.py
+
+    - name: Archive data
+      run: |
+        zip -r crawled_data.zip data  # 将爬虫结果所在的文件夹压缩，确保用正确的文件夹名替换 'data'
+
+    - name: Upload crawled data
+      uses: actions/upload-artifact@v2
+      with:
+        name: crawled-data
+        path: crawled_data.zip
